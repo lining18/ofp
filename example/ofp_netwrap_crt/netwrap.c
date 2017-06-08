@@ -17,7 +17,11 @@
 #include "netwrap_sendfile.h"
 #include "netwrap_epoll.h"
 
+#ifndef OFP_PLAT_ODP_DPDK
 __attribute__((constructor)) static void setup_wrappers(void)
+#else
+void setup_wrappers(void)
+#endif
 {
 	setup_socket_wrappers();
 	setup_sockopt_wrappers();

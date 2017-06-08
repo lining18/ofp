@@ -61,9 +61,15 @@ static odph_linux_pthread_t thread_tbl[MAX_WORKERS];
 static int num_workers;
 odp_instance_t netwrap_proc_instance;
 
+#ifndef OFP_PLAT_ODP_DPDK
 __attribute__((destructor)) static void ofp_netwrap_main_dtor(void);
+#endif
 
+#ifndef OFP_PLAT_ODP_DPDK
 __attribute__((constructor)) static void ofp_netwrap_main_ctor(void)
+#else
+void ofp_netwrap_main_ctor(void)
+#endif
 {
 	appl_args_t params;
 	int core_count, ret_val;
@@ -98,6 +104,10 @@ __attribute__((constructor)) static void ofp_netwrap_main_ctor(void)
 		return;
 	}
 	netwrap_state = NETWRAP_ODP_INIT_LOCAL;
+
+	#ifdef OFP_PLAT_ODP_DPDK
+		setup_wrappers();
+	#endif
 
 	/* Print both system and application information */
 	print_info("ofp_netwrap", &params);
@@ -218,8 +228,11 @@ __attribute__((constructor)) static void ofp_netwrap_main_ctor(void)
 	OFP_INFO("End Netwrap processing constructor()\n");
 }
 
-__attribute__((destructor))
-static void ofp_netwrap_main_dtor(void)
+#ifndef OFP_PLAT_ODP_DPDK
+__attribute__((destructor)) static void ofp_netwrap_main_dtor(void)
+#else
+void ofp_netwrap_main_dtor(void)
+#endif
 {
 	ofp_stop_processing();
 
