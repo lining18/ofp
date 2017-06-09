@@ -38,6 +38,8 @@ static ssize_t (*libc_read)(int, void*, size_t);
 static ssize_t (*libc_write)(int, const void*, size_t);
 static ssize_t (*libc_recv)(int, void*, size_t, int);
 static ssize_t (*libc_send)(int, const void*, size_t, int);
+static int (*libc_getpeername)(int, struct sockaddr *, socklen_t *);
+static int (*libc_getsockname)(int, struct sockaddr *, socklen_t *);
 
 void setup_socket_wrappers(void)
 {
@@ -53,6 +55,8 @@ void setup_socket_wrappers(void)
 	LIBC_FUNCTION(write);
 	LIBC_FUNCTION(recv);
 	LIBC_FUNCTION(send);
+	LIBC_FUNCTION(getpeername);
+	LIBC_FUNCTION(getsockname);
 
 	setup_socket_wrappers_called = 1;
 }
@@ -674,4 +678,182 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags)
 	return send_value;
 }
 
+int getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    int ret;
+    
+    if (IS_OFP_SOCKET(sockfd)) {
+		union _ofp_sockaddr_storage ofp_addr_local;
+        struct ofp_sockaddr *ofp_addr;
+        ofp_socklen_t ofp_addrlen_local;
+        ofp_socklen_t *ofp_addrlen;
 
+        if (addr) {
+            ofp_addr = (struct ofp_sockaddr *)&ofp_addr_local;
+
+            if (!addrlen) {
+                errno = EINVAL;
+                return -1;
+            }
+            ofp_addrlen = &ofp_addrlen_local;
+            ofp_addrlen_local = sizeof(ofp_addr_local);
+        } else {
+            ofp_addr = NULL;
+            ofp_addrlen = NULL;
+        }
+		
+        ret = ofp_getsockname(sockfd, ofp_addr, ofp_addrlen);
+		errno = NETWRAP_ERRNO(ofp_errno);
+		
+		if (ret != -1 && addr) {
+			switch (ofp_addr->sa_family) {
+            case OFP_AF_INET:
+            {
+                struct sockaddr_in addr_in_tmp;
+                struct ofp_sockaddr_in *ofp_addr_in_tmp =
+                    (struct ofp_sockaddr_in *)ofp_addr;
+
+                addr_in_tmp.sin_family = AF_INET;
+                addr_in_tmp.sin_port =
+                    ofp_addr_in_tmp->sin_port;
+                addr_in_tmp.sin_addr.s_addr =
+                    ofp_addr_in_tmp->sin_addr.s_addr;
+
+                if (*addrlen > sizeof(addr_in_tmp))
+                    *addrlen = sizeof(addr_in_tmp);
+
+                memcpy(addr, &addr_in_tmp, *addrlen);
+                break;
+            }
+            case OFP_AF_INET6:
+            {
+                struct sockaddr_in6 addr_in6_tmp;
+                struct ofp_sockaddr_in6 *ofp_addr_in6_tmp =
+                    (struct ofp_sockaddr_in6 *)ofp_addr;
+
+                addr_in6_tmp.sin6_family = AF_INET6;
+                addr_in6_tmp.sin6_port =
+                    ofp_addr_in6_tmp->sin6_port;
+
+                addr_in6_tmp.sin6_flowinfo =
+                    ofp_addr_in6_tmp->sin6_flowinfo;
+                addr_in6_tmp.sin6_scope_id =
+                    ofp_addr_in6_tmp->sin6_scope_id;
+                memcpy((unsigned char *)addr_in6_tmp.sin6_addr.s6_addr,
+                    (unsigned char *)ofp_addr_in6_tmp->sin6_addr.__u6_addr.__u6_addr16,
+                    16);
+
+                if (*addrlen > sizeof(addr_in6_tmp))
+                    *addrlen = sizeof(addr_in6_tmp);
+
+                memcpy(addr, &addr_in6_tmp, *addrlen);
+                break;
+            }
+            default:
+                return -1;
+            }
+		}
+    } else if (libc_getsockname) {
+        ret = libc_getsockname(sockfd, addr, addrlen);
+    } else {
+        LIBC_FUNCTION(getsockname);
+        
+        if (libc_getsockname)
+            ret = libc_getsockname(sockfd, addr, addrlen);
+        else {
+            ret = -1;
+            errno = EACCES;
+        }       
+    }
+    return ret;
+}
+
+int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    int ret;
+    
+    if (IS_OFP_SOCKET(sockfd)) {
+		union _ofp_sockaddr_storage ofp_addr_local;
+        struct ofp_sockaddr *ofp_addr;
+        ofp_socklen_t ofp_addrlen_local;
+        ofp_socklen_t *ofp_addrlen;
+
+        if (addr) {
+            ofp_addr = (struct ofp_sockaddr *)&ofp_addr_local;
+
+            if (!addrlen) {
+                errno = EINVAL;
+                return -1;
+            }
+            ofp_addrlen = &ofp_addrlen_local;
+            ofp_addrlen_local = sizeof(ofp_addr_local);
+        } else {
+            ofp_addr = NULL;
+            ofp_addrlen = NULL;
+        }
+		
+        ret = ofp_getpeername(sockfd, ofp_addr, ofp_addrlen);
+		errno = NETWRAP_ERRNO(ofp_errno);
+		
+		if (ret != -1 && addr) {
+			switch (ofp_addr->sa_family) {
+            case OFP_AF_INET:
+            {
+                struct sockaddr_in addr_in_tmp;
+                struct ofp_sockaddr_in *ofp_addr_in_tmp =
+                    (struct ofp_sockaddr_in *)ofp_addr;
+
+                addr_in_tmp.sin_family = AF_INET;
+                addr_in_tmp.sin_port =
+                    ofp_addr_in_tmp->sin_port;
+                addr_in_tmp.sin_addr.s_addr =
+                    ofp_addr_in_tmp->sin_addr.s_addr;
+
+                if (*addrlen > sizeof(addr_in_tmp))
+                    *addrlen = sizeof(addr_in_tmp);
+
+                memcpy(addr, &addr_in_tmp, *addrlen);
+                break;
+            }
+            case OFP_AF_INET6:
+            {
+                struct sockaddr_in6 addr_in6_tmp;
+                struct ofp_sockaddr_in6 *ofp_addr_in6_tmp =
+                    (struct ofp_sockaddr_in6 *)ofp_addr;
+
+                addr_in6_tmp.sin6_family = AF_INET6;
+                addr_in6_tmp.sin6_port =
+                    ofp_addr_in6_tmp->sin6_port;
+
+                addr_in6_tmp.sin6_flowinfo =
+                    ofp_addr_in6_tmp->sin6_flowinfo;
+                addr_in6_tmp.sin6_scope_id =
+                    ofp_addr_in6_tmp->sin6_scope_id;
+                memcpy((unsigned char *)addr_in6_tmp.sin6_addr.s6_addr,
+                    (unsigned char *)ofp_addr_in6_tmp->sin6_addr.__u6_addr.__u6_addr16,
+                    16);
+
+                if (*addrlen > sizeof(addr_in6_tmp))
+                    *addrlen = sizeof(addr_in6_tmp);
+
+                memcpy(addr, &addr_in6_tmp, *addrlen);
+                break;
+            }
+            default:
+                return -1;
+            }
+		}		
+    } else if (libc_getpeername) {
+        ret = libc_getpeername(sockfd, addr, addrlen);
+    } else {
+        LIBC_FUNCTION(getpeername);
+        
+        if (libc_getpeername)
+            ret = libc_getpeername(sockfd, addr, addrlen);
+        else {
+            ret = -1;
+            errno = EACCES;
+        }       
+    }
+    return ret;
+}

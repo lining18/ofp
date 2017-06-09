@@ -478,10 +478,10 @@ void	*ofp_udp_packet_parse(odp_packet_t, int *,
 ofp_ssize_t ofp_udp_pkt_sendto(int, odp_packet_t,
 				   const struct ofp_sockaddr *, ofp_socklen_t);
 
-#if 0 /* Not implemented */
 int	ofp_getpeername(int, struct ofp_sockaddr * __restrict, ofp_socklen_t * __restrict);
 int	ofp_getsockname(int, struct ofp_sockaddr * __restrict, ofp_socklen_t * __restrict);
 
+#if 0 /* Not implemented */
 ofp_ssize_t	ofp_recvmsg(int, struct ofp_msghdr *, int);
 ofp_ssize_t	ofp_sendmsg(int, const struct ofp_msghdr *, int);
 int	ofp_sendfile(int, int, ofp_off_t, size_t, struct ofp_sf_hdtr *,

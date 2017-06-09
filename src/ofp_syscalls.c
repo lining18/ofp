@@ -691,3 +691,51 @@ int ofp_ioctl(int sockfd, int request, ...)
 
 	return 0;
 }
+
+int ofp_getsockname(int sockfd, struct ofp_sockaddr *addr, ofp_socklen_t *addrlen)
+{
+	struct ofp_sockaddr *nam = NULL;
+	struct socket *so = ofp_get_sock_by_fd(sockfd);
+	if (!so) {
+		ofp_errno = OFP_EBADF;
+		return -1;
+	}
+
+	if (!addr) {
+		*addrlen = 0;
+		return -1;
+	}
+
+	so->so_proto->pr_usrreqs->pru_sockaddr(so, &nam);
+	if (nam) {
+		*addrlen = nam->sa_len;
+		memcpy(addr, nam, *addrlen);
+		free(nam);
+		return 0;
+	}
+	return -1;
+}
+
+int ofp_getpeername(int sockfd, struct ofp_sockaddr *addr, ofp_socklen_t *addrlen)
+{
+	struct ofp_sockaddr *nam = NULL;
+	struct socket *so = ofp_get_sock_by_fd(sockfd);
+	if (!so) {
+		ofp_errno = OFP_EBADF;
+		return -1;
+	}
+
+	if (!addr) {
+		*addrlen = 0;
+		return -1;
+	}
+
+	so->so_proto->pr_usrreqs->pru_peeraddr(so, &nam);
+	if (nam) {
+		*addrlen = nam->sa_len;
+		memcpy(addr, nam, *addrlen);
+		free(nam);
+		return 0;
+	}
+	return -1;
+}
