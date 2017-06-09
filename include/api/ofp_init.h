@@ -34,7 +34,7 @@
  *
  * @see ofp_init_global_param()
  */
-typedef struct ofp_init_global_t {
+typedef struct ofp_global_param_t {
 	/** Count of interfaces to be initialized. The default value is 0. */
 	uint16_t if_count;
 
@@ -60,10 +60,21 @@ typedef struct ofp_init_global_t {
 	/** Use direct input mode for all interfaces if set. Otherwise use
 	 *  scheduled input mode. Default value is 0 (i.e. scheduled mode). */
 	uint8_t burst_recv_mode;
-} ofp_init_global_t;
+
+	/** Create netlink listener thread. If slow path is enabled,
+	 *  then default is TRUE, otherwise default is FALSE. */
+	odp_bool_t enable_nl_thread;
+
+	struct {
+		/// ARP aging timer interval in seconds. Default is ARP_AGE_INTERVAL.
+		int age_interval;
+		/// ARP entry timeout in seconds. Default is ARP_ENTRY_TIMEOUT.
+		int entry_timeout;
+	} arp;
+} ofp_global_param_t;
 
 /**
- * Initialize ofp_init_global_t to its default values.
+ * Initialize ofp_global_param_t to its default values.
  *
  * This function should be called to initialize the supplied parameter
  * structure to default values before setting application specific values
@@ -77,7 +88,7 @@ typedef struct ofp_init_global_t {
  *
  * @see ofp_init_global()
  */
-void ofp_init_global_param(ofp_init_global_t *params);
+void ofp_init_global_param(ofp_global_param_t *params);
 
 /**
  * OFP global initialization
@@ -92,7 +103,7 @@ void ofp_init_global_param(ofp_init_global_t *params);
  *
  * @see ofp_init_local() which is required per thread before use.
  */
-int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params);
+int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params);
 
 /**
  * Thread local OFP initialization

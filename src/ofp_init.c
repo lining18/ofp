@@ -100,10 +100,15 @@ odp_bool_t *ofp_get_processing_state(void)
 	return &shm->is_running;
 }
 
-void ofp_init_global_param(ofp_init_global_t *params)
+void ofp_init_global_param(ofp_global_param_t *params)
 {
 	memset(params, 0, sizeof(*params));
 	params->sched_group = ODP_SCHED_GROUP_ALL;
+#ifdef SP
+	params->enable_nl_thread = 1;
+#endif /* SP */
+	params->arp.age_interval = ARP_AGE_INTERVAL;
+	params->arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 }
 
 int ofp_init_pre_global(const char *pool_name_unused,
@@ -180,20 +185,18 @@ odp_pool_t ofp_packet_pool;
 odp_cpumask_t cpumask;
 int ofp_init_global_called = 0;
 
-int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
+int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 {
 	int i;
 	odp_pktio_param_t pktio_param;
 	odp_pktin_queue_param_t pktin_param;
-#ifdef SP
 	odph_linux_thr_params_t thr_params;
-#endif /* SP */
 
 	ofp_init_global_called = 1;
 
 	HANDLE_ERROR(ofp_init_pre_global(NULL, NULL,
 					 params->pkt_hook, NULL,
-					 ARP_AGE_INTERVAL, ARP_ENTRY_TIMEOUT,
+					 params->arp.age_interval, params->arp.entry_timeout,
 					 params->sched_group));
 
 	/* cpu mask for slow path threads */
@@ -217,21 +220,18 @@ int ofp_init_global(odp_instance_t instance, ofp_init_global_t *params)
 		HANDLE_ERROR(ofp_ifnet_create(instance, params->if_names[i],
 			&pktio_param, &pktin_param, NULL));
 
-#ifdef SP
-	/* Start Netlink server process */
-	thr_params.start = START_NL_SERVER;
-	thr_params.arg = NULL;
-	thr_params.thr_type = ODP_THREAD_CONTROL;
-	thr_params.instance = instance;
-	if (!odph_linux_pthread_create(&shm->nl_thread,
-				  &cpumask,
-				  &thr_params)) {
-
-		OFP_ERR("Failed to start Netlink thread.");
-		return -1;
+	if (params->enable_nl_thread) {
+		/* Start Netlink server process */
+		thr_params.start = START_NL_SERVER;
+		thr_params.arg = NULL;
+		thr_params.thr_type = ODP_THREAD_CONTROL;
+		thr_params.instance = instance;
+		if (!odph_linux_pthread_create(&shm->nl_thread, &cpumask, &thr_params)) {
+			OFP_ERR("Failed to start Netlink thread.");
+			return -1;
+		}
+		shm->nl_thread_is_running = 1;
 	}
-	shm->nl_thread_is_running = 1;
-#endif /* SP */
 
 	odp_schedule_resume();
 	return 0;
@@ -246,6 +246,7 @@ int ofp_init_local(void)
 	HANDLE_ERROR(ofp_portconf_lookup_shared_memory());
 	HANDLE_ERROR(ofp_vlan_lookup_shared_memory());
 	HANDLE_ERROR(ofp_route_lookup_shared_memory());
+	HANDLE_ERROR(ofp_vrf_route_lookup_shared_memory());
 	HANDLE_ERROR(ofp_avl_lookup_shared_memory());
 	HANDLE_ERROR(ofp_reassembly_lookup_shared_memory());
 	HANDLE_ERROR(ofp_pcap_lookup_shared_memory());
