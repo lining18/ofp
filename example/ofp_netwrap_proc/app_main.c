@@ -155,7 +155,8 @@ void ofp_netwrap_main_ctor(void)
 
 	app_init_params.if_count = params.if_count;
 	app_init_params.if_names = params.if_names;
-
+	app_init_params.arp.age_interval = ARP_AGE_INTERVAL;
+	app_init_params.arp.entry_timeout = ARP_ENTRY_TIMEOUT;
 	/*
 	 * Now that ODP has been initalized, we can initialize OFP. This will
 	 * open a pktio instance for each interface supplied as argument by the
