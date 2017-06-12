@@ -220,6 +220,7 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 		HANDLE_ERROR(ofp_ifnet_create(instance, params->if_names[i],
 			&pktio_param, &pktin_param, NULL));
 
+#ifdef SP
 	if (params->enable_nl_thread) {
 		/* Start Netlink server process */
 		thr_params.start = START_NL_SERVER;
@@ -232,6 +233,7 @@ int ofp_init_global(odp_instance_t instance, ofp_global_param_t *params)
 		}
 		shm->nl_thread_is_running = 1;
 	}
+#endif
 
 	odp_schedule_resume();
 	return 0;
