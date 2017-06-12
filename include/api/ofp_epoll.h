@@ -28,6 +28,7 @@ struct ofp_epoll_event {
 
 enum OFP_EPOLL_EVENTS {
 	OFP_EPOLLIN = 0x001,
+	OFP_EPOLLOUT = 0x004,
 #define OFP_EPOLLIN OFP_EPOLLIN
 };
 

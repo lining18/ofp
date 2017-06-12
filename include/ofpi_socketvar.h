@@ -432,5 +432,5 @@ int ofp_wakeup_one(void *channel);
 int ofp_send_sock_event(struct socket *head, struct socket *so, int event);
 
 int is_readable(int fd);
-
+int is_writeable(int fd);
 #endif /* !_SYS_SOCKETVAR_H_ */

@@ -173,6 +173,7 @@ static inline int is_fd_set(struct epoll_set *epoll_set)
 }
 
 static int (*is_fd_readable)(int fd) = is_readable;
+static int (*is_fd_writeable)(int fd) = is_writeable;
 
 static inline struct ofp_epoll_event get_event(struct epoll_set *epoll_set)
 {
@@ -184,12 +185,18 @@ static inline int is_waiting_read_event(struct epoll_set *epoll_set)
 	return (get_event(epoll_set).events & OFP_EPOLLIN);
 }
 
+static inline int is_waiting_write_event(struct epoll_set *epoll_set)
+{
+	return (get_event(epoll_set).events & OFP_EPOLLOUT);
+}
+
 static int is_ready(struct epoll_set *epoll_set)
 {
 	if (!is_fd_set(epoll_set))
 		return 0;
 
-	return (is_waiting_read_event(epoll_set) && is_fd_readable(get_fd(epoll_set)));
+	return (is_waiting_read_event(epoll_set) && is_fd_readable(get_fd(epoll_set))) ||
+		   (is_waiting_write_event(epoll_set) && is_fd_writeable(get_fd(epoll_set)));
 }
 
 static int none_of_ready(struct socket *epoll)

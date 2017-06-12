@@ -2872,8 +2872,19 @@ is_readable(int fd)
 {
 	struct socket *so = ofp_get_sock_by_fd(fd);
 
+#if 0
 	if (is_accepting_socket(so))
 		return is_accepting_socket_readable(so);
 
 	return is_listening_socket_readable(so);
+#endif
+	return soreadable(so);
+}
+
+int
+is_writeable(int fd)
+{
+	struct socket *so = ofp_get_sock_by_fd(fd);
+
+	return sowriteable(so);
 }
